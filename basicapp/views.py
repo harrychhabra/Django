@@ -23,7 +23,7 @@ from django.views.generic import (View, TemplateView,
 from django.db import connection
 from django.shortcuts import redirect
 import paralleldots
-paralleldots.set_api_key("ghdY3NjkLKVI2uE5i3CK0hkpfWugfO9HATYIX9P8kJc")
+paralleldots.set_api_key("nUV2Ym1gQr8REXKIZQzgKQkDBUkBaUSK6Qukfcx4LwE")
 
 # Create your views here.
 
@@ -70,18 +70,11 @@ def index(request):
     for n in n3:
         print(n.interest_name)
         user_interests.append(n.interest_name)
-    
-    n2= Newsfeed.objects.all()
-    interestOne = NewsfeedScore.objects.filter(category=n3[0].interest_name).filter(score__gte=0.85)
-    interestTwo = NewsfeedScore.objects.filter(category=n3[1].interest_name).filter(score__gte=0.85)
-    interestThree = NewsfeedScore.objects.filter(category=n3[2].interest_name).filter(score__gte=0.85)
 
-    #attempting to make one of all query
-    #interestedNewsfeed = NewsfeedScore.objects.filter(Q(category=n3[0].interest_name) | Q(category=n3[1].interest_name) | Q(category=n3[2].interest_name)).filter(score__gte=0.85)
-    print(interestOne)
+    n2= Newsfeed.objects.all()
     n1 = User_Table.objects.filter(user_name__username__icontains=request.user.username)
     print(user_interests[0])
-    return render(request, 'basicapp/index.html', {'user_interests':user_interests,'user_record':n1, 'first_two_news_feed':n2[0:2], 'interestOneFeed':interestOne, 'interestTwoFeed':interestTwo, 'interestThreeFeed':interestThree, 'rest_news_feed':n2[2:]})
+    return render(request, 'basicapp/index.html', {'user_interests':user_interests,'user_record':n1})
 
 @login_required
 def instituteAdmin(request):
@@ -143,23 +136,27 @@ def addUser(request):
 
     return render(request, 'basicapp/adduser.html', {'user_form':user_form, 'add_user_form':add_user_form})
 
-def addNewsFeed(request):
+def addNewsFeeds(request):
     print('here')
     n1 = User_Table.objects.filter(user_name__username__icontains=request.user.username)
+    data = {}
     if request.method == 'POST':
         print('inside POST')
         add_news_feed = addNewsFeedForm(data = request.POST)
         if add_news_feed.is_valid():
-            news_feed = add_news_feed.save(commit=False)
-            news_feed.user_name = request.user.username
-            news_feed.save()
-
+            # news_feed = add_news_feed.save(commit=False)
+            # news_feed.user_name = request.user.username
+            # news_feed.save()
+        # newsfeed_object = Newsfeed()
+        # newsfeed_object.user_name = request.user.username
+        # newsfeed_object.news_feed_type request.POST.get('')
+        # newsfeed_object.description
+        # newsfeed_object.image
+        # newsfeed_object.intended_for
             category = { "Sports":['Cricket', 'Football', 'Soccer', 'Swimming', 'Horse Riding', 'Table Tennis', 'Badminton'], 'Artificial Intelligence':['Machine Learning', 'Deep Learning', 'Mimic', 'Linear Regression', 'Logistic Regression'], 'Internet of Things': ['Automation', 'Alexa', 'Siri', 'Google Home'], 'Data Structure and Algorithms':['DFS', 'BFS', 'Array', 'Stacks', 'Queues', 'Recursion', 'Disjoint Set'], 'Competitive Programming':['Codechef', 'Hackerearth', 'Hackerrank', 'Purple'],
             'Management':['Event', 'Time'], 'Developer':['Software Engineering', 'Project', 'APIs', 'Web Development'], 'Blockchain':['Cryptocurrency', 'Bitcoins', 'Etherium'], 'Operting System':[], 'Art':[], 'Gaming':[], 'Virtual Reality':[], 'Microprocessors':[], 'Aviation':[], 'Mechanical Engineering':[], 'Electronics Engineering':[], 'Textile Engineering':[], 'Mining Engineering':[]}
 
             api_scores = paralleldots.custom_classifier(request.POST.get('description'), category);
-            print(request.POST.get('description'))
-            print(api_scores)
             for api_score in api_scores['taxonomy']:
                 tag = api_score['tag']
                 score = api_score['confidence_score']
@@ -250,7 +247,7 @@ def loadNewsFeed(request):
     # interests = User_Interest.objects.filter(user_name__username__icontains=request.user.username)
     newsfeeds = Newsfeed.objects.all().order_by('-date')
     res = {}
-    
+
     i = 0
     for newsfeed in newsfeeds:
         score_ = NewsfeedScore.objects.filter(newsfeed = newsfeed)
@@ -279,12 +276,12 @@ def loadNewsFeed(request):
             b['created_date'] = comment.created_date
             a['comments'][str(j)] = b
             j = j + 1;
-        a['comments_length'] = j    
+        a['comments_length'] = j
         res[str(i)] = a
         i=i+1
     res['length'] = i
     return JsonResponse(res)
-    
+
 def addComment(request):
     id = request.GET.get('id')
     comment_description = request.GET.get('comment')
@@ -299,3 +296,89 @@ def addComment(request):
     data['message'] = 'working'
     print("comment added id: " + id)
     return JsonResponse(data);
+    
+    
+@csrf_exempt
+def addNewsFeed(request):
+    data = {}
+    data['status']='false'
+    if request.method == 'POST':
+        username = request.user.username
+        description = request.POST.get('inputContent')
+        type = request.POST.get('type')
+        intended_for = request.POST.get('intended_for')
+        image = request.POST.get('image')
+        print('type: ' + str(type))
+        newsfeed_object = Newsfeed()
+        newsfeed_object.user_name = username
+        newsfeed_object.news_feed_type = type
+        newsfeed_object.description = description
+        newsfeed_object.image = image
+        newsfeed_object.intended_for = intended_for
+        newsfeed_object.save()
+        # to calculate score
+        category = { "Sports":['Cricket', 'Football', 'Soccer', 'Swimming', 'Horse Riding', 'Table Tennis', 'Badminton'], 'Artificial Intelligence':['Machine Learning', 'Deep Learning', 'Mimic', 'Linear Regression', 'Logistic Regression'], 'Internet of Things': ['Automation', 'Alexa', 'Siri', 'Google Home'], 'Data Structure and Algorithms':['DFS', 'BFS', 'Array', 'Stacks', 'Queues', 'Recursion', 'Disjoint Set'], 'Competitive Programming':['Codechef', 'Hackerearth', 'Hackerrank', 'Purple'],
+        'Management':['Event', 'Time'], 'Developer':['Software Engineering', 'Project', 'APIs', 'Web Development'], 'Blockchain':['Cryptocurrency', 'Bitcoins', 'Etherium'], 'Operting System':[], 'Art':[], 'Gaming':[], 'Virtual Reality':[], 'Microprocessors':[], 'Aviation':[], 'Mechanical Engineering':[], 'Electronics Engineering':[], 'Textile Engineering':[], 'Mining Engineering':[]}
+
+        api_scores = paralleldots.custom_classifier(description, category);
+        for api_score in api_scores['taxonomy']:
+            tag = api_score['tag']
+            score = api_score['confidence_score']
+            score_table = NewsfeedScore()
+            score_table.newsfeed = newsfeed_object
+            score_table.category = tag
+            score_table.score = score
+            score_table.save()
+        
+        data['status']='true'
+    # else:
+    return JsonResponse(data)
+    
+@csrf_exempt
+def deleteUserInterest(request):
+    data = {}
+    print('backend')
+    data['status']='false'
+    if request.method == 'POST':
+        id = request.POST.get('id')
+        userInterestObject = User_Interest.objects.get(id = id)
+        userInterestObject.delete()
+        data['status']='true'
+    return JsonResponse(data)
+    
+@csrf_exempt
+@login_required
+def addUserNewInterest(request):
+    data = {}
+    data['status']='false'
+    if request.method == 'POST':
+        username = request.user.username
+        username = User.objects.get(username = username)
+        interest = request.POST.get('interest')
+        interest_object = Interest.objects.filter(interest_name = interest)
+        if len(interest_object) != 1:
+            data['message']='No such Interest Found'
+            return JsonResponse(data)
+        user_interest_object =  User_Interest.objects.filter(user_name=username,interest_name=interest_object[0].pk)
+        if len(user_interest_object) != 0:
+            data['message'] = 'Interest already exist'
+            return JsonResponse(data)
+        user_interest_object = User_Interest()
+        user_interest_object.user_name = username
+        user_interest_object.interest_name = Interest.objects.get(pk = interest_object[0].pk)
+        # user_interest_object.interest_name = interest_object
+        user_interest_object.save()
+        data['status']='true'
+        data['id']=user_interest_object.pk
+    return JsonResponse(data)
+    
+def searchKeyword(request):
+    keyword = request.GET.get('keyword')
+    searchResults = User.objects.filter(username__icontains=keyword)
+    htmlCode = ''
+    for searchResult in searchResults:
+        htmlCode += searchResult.username
+        htmlCode += '<br>'
+    data = {}
+    data['result'] = htmlCode
+    return JsonResponse(data)
